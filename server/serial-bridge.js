@@ -1,4 +1,6 @@
 import http from "http";
+import https from "https";
+import fs from "fs";
 import process from "process";
 import { WebSocketServer, WebSocket } from "ws";
 import { NodeJSSerialConnection } from "@liamcottle/meshcore.js";
@@ -39,11 +41,13 @@ async function connectSerialWithRetry() {
                 scheduleReconnect();
             });
 
-            connection.on("rx", (frame) => broadcastFrame(frame));
+            connection.on("rx", (frame) => {
+                console.log("[serial] rx", frame.length, "bytes");
+                broadcastFrame(frame);
+            });
 
             connection.on("tx", (frame) => {
-                // Uncomment for verbose logging of outbound frames
-                // console.log("[serial] tx", Buffer.from(frame).toString("hex"));
+                console.log("[serial] tx", frame.length, "bytes");
             });
 
             serialConnection = connection;
@@ -90,6 +94,7 @@ function broadcastFrame(frame) {
     }
 
     const payload = Buffer.from(frame);
+    console.log("[bridge] broadcasting frame to", clients.size, "clients");
     for (const client of clients) {
         if (client.readyState === WebSocket.OPEN) {
             client.send(payload);
@@ -101,11 +106,25 @@ connectSerialWithRetry().catch((error) => {
     console.error("[serial] failed to establish connection:", error);
 });
 
-const server = http.createServer();
+let server;
+const keyPath = "cert.key";
+const certPath = "cert.crt";
+
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    console.log("[bridge] Found SSL certificates. Starting secure WSS server.");
+    server = https.createServer({
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    });
+} else {
+    console.log("[bridge] No SSL certificates found. Starting insecure WS server.");
+    server = http.createServer();
+}
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws, req) => {
     if (!serialReady || !serialConnection) {
+        console.warn("[ws] client attempted to connect but serial not ready");
         ws.close(1013, "Serial port not ready");
         return;
     }
@@ -115,11 +134,13 @@ wss.on("connection", (ws, req) => {
 
     ws.on("message", async (message, isBinary) => {
         if (!serialReady || !serialConnection) {
+            console.warn("[ws] received message but serial not ready");
             ws.close(1011, "Serial port not ready");
             return;
         }
 
         const payload = isBinary || Buffer.isBuffer(message) ? message : Buffer.from(message);
+        console.log("[ws] rx from client", payload.length, "bytes");
         try {
             await serialConnection.sendToRadioFrame(new Uint8Array(payload));
         } catch (error) {
@@ -128,9 +149,9 @@ wss.on("connection", (ws, req) => {
         }
     });
 
-    ws.on("close", () => {
+    ws.on("close", (code, reason) => {
         clients.delete(ws);
-        console.log("[ws] client disconnected");
+        console.log("[ws] client disconnected", code, reason?.toString());
     });
 
     ws.on("error", (error) => {

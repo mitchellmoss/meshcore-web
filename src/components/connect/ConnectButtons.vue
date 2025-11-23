@@ -51,7 +51,13 @@
         <!-- remote bridge -->
         <div class="bg-white rounded shadow px-3 py-3 space-y-2 text-left">
             <label class="text-sm font-semibold text-gray-700" for="remoteRadioUrl">Remote radio bridge URL</label>
-            <input id="remoteRadioUrl" v-model="remoteUrl" type="text" placeholder="wss://192.168.86.216:8787" class="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <input
+                id="remoteRadioUrl"
+                v-model="remoteUrl"
+                type="text"
+                :placeholder="defaultRemoteUrl"
+                class="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
             <button @click="connectToRemoteRadio" type="button" :disabled="connectingRemote" class="w-full flex justify-center items-center cursor-pointer bg-indigo-600 rounded px-3 py-2 text-white font-semibold hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
                 <span>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6">
@@ -64,7 +70,7 @@
                 </span>
                 <span class="ml-2">{{ connectingRemote ? 'Connecting…' : 'Connect to Remote Radio' }}</span>
             </button>
-            <p class="text-xs text-gray-500">Requires the serial bridge server running on your Debian host (see README).</p>
+            <p class="text-xs text-gray-500">Requires the serial bridge server running on your host (started by start.sh).</p>
         </div>
 
     </div>
@@ -73,13 +79,31 @@
 <script>
 import Connection from "../../js/Connection.js";
 
+function getDefaultRemoteUrl() {
+    try {
+        const host = window.location.hostname || "localhost";
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        return `${protocol}://${host}:8787`;
+    } catch (e) {
+        return "ws://localhost:8787";
+    }
+}
+
 export default {
     name: 'ConnectButtons',
     data() {
+        const defaultRemoteUrl = getDefaultRemoteUrl();
+        const saved = localStorage.getItem("meshcore.remoteUrl");
         return {
-            remoteUrl: localStorage.getItem("meshcore.remoteUrl") || "ws://192.168.86.216:8787",
+            defaultRemoteUrl,
+            remoteUrl: saved || defaultRemoteUrl,
             connectingRemote: false,
         };
+    },
+    mounted() {
+        if (window.location.protocol === "https:" && this.remoteUrl.startsWith("ws://")) {
+            this.remoteUrl = this.remoteUrl.replace("ws://", "wss://");
+        }
     },
     watch: {
         remoteUrl(value) {

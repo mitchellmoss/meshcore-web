@@ -76,6 +76,7 @@ export default {
         };
     },
     mounted() {
+        if(!GlobalState.isDatabaseReady) return;
 
         // listen for new messages so we can update read state
         this.contactMessagesSubscription = Database.Message.getAllMessages().$.subscribe(async () => {

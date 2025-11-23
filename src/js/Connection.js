@@ -101,11 +101,25 @@ class Connection {
         GlobalState.contacts = [];
         GlobalState.channels = [];
         GlobalState.batteryPercentage = null;
+        GlobalState.isDatabaseReady = false;
 
         // update connection and listen for events
         GlobalState.connection = connection;
         GlobalState.connection.on("connected", () => this.onConnected());
         GlobalState.connection.on("disconnected", () => this.onDisconnected());
+
+        // for WebSocket bridge connections, explicitly start the MeshCore
+        // handshake (deviceQuery + "connected" event) *after* listeners
+        // are attached, to avoid race conditions.
+        if (connection instanceof WebSocketBridgeConnection) {
+            try {
+                console.log("[app-connection] starting remote handshake via WebSocket bridge");
+                await connection.onConnected();
+            } catch (e) {
+                console.error("[app-connection] remote handshake failed", e);
+                throw e;
+            }
+        }
 
     }
 
@@ -154,8 +168,17 @@ class Connection {
 
         // listen for self info, and then init database
         GlobalState.connection.once(Constants.ResponseCodes.SelfInfo, async (selfInfo) => {
-            await Database.initDatabase(Utils.bytesToHex(selfInfo.publicKey));
-            onDatabaseReady();
+            try {
+                await Database.initDatabase(Utils.bytesToHex(selfInfo.publicKey));
+                GlobalState.isDatabaseReady = true;
+                console.log("Database initialised for device", Utils.bytesToHex(selfInfo.publicKey));
+            } catch (e) {
+                console.error("Failed to init database", e);
+                // fall back to in-memory mode so UI can still function
+                GlobalState.isDatabaseReady = false;
+            } finally {
+                onDatabaseReady();
+            }
         });
 
         // listen for adverts
@@ -183,13 +206,27 @@ class Connection {
         GlobalState.connection.on(Constants.PushCodes.SendConfirmed, async (event) => {
             console.log("SendConfirmed", event);
             await databaseToBeReady;
-            await Database.Message.setMessageDeliveredByAckCode(event.ackCode, event.roundTrip);
+            try {
+                await Database.Message.setMessageDeliveredByAckCode(event.ackCode, event.roundTrip);
+            } catch (e) {
+                console.error("Failed to mark message delivered", e);
+            }
         });
 
         // initial setup without needing database
         this.loadAckBotSettings();
-        await this.loadSelfInfo();
-        await this.syncDeviceTime();
+        try {
+            await this.loadSelfInfo();
+            console.log("SelfInfo loaded", GlobalState.selfInfo);
+        } catch (e) {
+            console.error("Failed to load self info", e);
+        }
+
+        try {
+            await this.syncDeviceTime();
+        } catch (e) {
+            console.error("Failed to sync device time", e);
+        }
 
         // wait for database to be ready
         await databaseToBeReady;
@@ -421,7 +458,7 @@ class Connection {
                 if(senderName !== myName && senderName !== "AckBot" && allowed){
 
                     console.log(`AckBot triggering for ${senderName}`);
-
+                    
                     let responseText = GlobalState.ackBot.response || "AckBot: @{sender} tyqre ackbot received";
                     responseText = responseText.replace("@{sender}", `@${senderName}`);
 
