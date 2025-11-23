@@ -1,5 +1,5 @@
 import GlobalState from "./GlobalState.js";
-import {BleConnection, Constants, SerialConnection} from "@liamcottle/meshcore.js";
+import {WebBleConnection, WebSerialConnection, Constants} from "@liamcottle/meshcore.js";
 import Database from "./Database.js";
 import Utils from "./Utils.js";
 import NotificationUtils from "./NotificationUtils.js";
@@ -11,7 +11,8 @@ class Connection {
 
     static async connectViaBluetooth() {
         try {
-            await this.connect(await BleConnection.open());
+            // Use browser-specific BLE connection wrapper
+            await this.connect(await WebBleConnection.open());
             return true;
         } catch(e) {
 
@@ -32,7 +33,14 @@ class Connection {
 
     static async connectViaSerial() {
         try {
-            await this.connect(await SerialConnection.open());
+            // Ensure browser supports Web Serial API
+            if(!('serial' in navigator)){
+                alert("Web Serial API is not available in this browser. Please use a Chromium-based browser (Chrome, Edge, Brave, etc.).");
+                return false;
+            }
+
+            // Use browser-specific Web Serial connection wrapper
+            await this.connect(await WebSerialConnection.open());
             return true;
         } catch(e) {
 
@@ -44,7 +52,7 @@ class Connection {
             }
 
             // show error message
-            alert("failed to connect to serial device!");
+            alert(`Failed to connect to serial device: ${e.message ?? e}`);
 
             return false;
 
