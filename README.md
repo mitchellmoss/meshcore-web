@@ -12,6 +12,25 @@ This web client has been replaced by the new cross-platform Flutter app, which h
 - iOS: https://apps.apple.com/us/app/meshcore/id6742354151?platform=iphone
 - Web: https://app.meshcore.nz
 
+## Remote serial bridge
+
+If you want to plug a Heltec/ESP32 radio into a Debian host and let other devices on the LAN talk to it, this repo now ships with a tiny WebSocket bridge.
+
+1. On the Debian box, run the bridge and point it at your serial port:
+
+```bash
+MESHCORE_SERIAL_PORT=/dev/ttyUSB0 MESHCORE_BRIDGE_PORT=8787 npm run bridge
+```
+
+   Environment variables:
+   - `MESHCORE_SERIAL_PORT` (default `/dev/ttyUSB0`) – serial device that the radio is attached to.
+   - `MESHCORE_BRIDGE_PORT` (default `8787`) – TCP port for the WebSocket listener.
+   - `MESHCORE_BRIDGE_HOST` (default `0.0.0.0`) – which interface to bind.
+
+   The server speaks plain WebSocket (`ws://`). Put it behind a TLS-terminating proxy if you need `wss://`.
+
+2. In the MeshCore web app, use the new “Connect to Remote Radio” panel on the connect screen and enter the WebSocket endpoint (e.g. `ws://192.168.86.216:8787`). The UI will reuse the same connection abstractions, so the rest of the app behaves as if you were using Web Serial locally.
+
 ## TODO
 
 - add screenshots to readme

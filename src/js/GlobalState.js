@@ -13,6 +13,7 @@ const globalState = reactive({
         enabled: false,
         trigger: "tyqre ackbot",
         response: "AckBot: @{sender} tyqre ackbot received",
+        whitelist: [],
     },
 });
 

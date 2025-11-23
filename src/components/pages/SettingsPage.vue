@@ -135,6 +135,24 @@
                             <p class="mt-1 text-xs text-gray-500">Use @{sender} to mention the message sender.</p>
                         </div>
 
+                        <div class="w-full p-2">
+                            <div class="block mb-2 text-sm font-medium text-gray-900">Whitelisted Contacts</div>
+                            <div v-if="contactOptions.length > 0" class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                                <label v-for="contact in contactOptions" :key="contact.key" class="flex items-center text-sm text-gray-900">
+                                    <input type="checkbox" :value="contact.name" v-model="ackBotWhitelistSelections" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                                    <span class="ml-2">{{ contact.name }}</span>
+                                </label>
+                            </div>
+                            <div v-else class="text-sm text-gray-500">No contacts available yet. Connect and sync to populate your list.</div>
+                            <p class="mt-1 text-xs text-gray-500">AckBot will only respond to the selected contacts. Leave all unchecked to respond to anyone.</p>
+                        </div>
+
+                        <div class="w-full p-2">
+                            <div class="block mb-2 text-sm font-medium text-gray-900">Additional Allowed Names</div>
+                            <textarea v-model="ackBotManualWhitelistText" rows="3" placeholder="e.g: Alice (non-contact)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"></textarea>
+                            <p class="mt-1 text-xs text-gray-500">Use commas or new lines. These entries are useful for names not in your contact list.</p>
+                        </div>
+
                     </div>
 
                     <!-- commands -->
@@ -222,6 +240,8 @@ export default {
             ackBotEnabled: false,
             ackBotTrigger: "",
             ackBotResponse: "",
+            ackBotWhitelistSelections: [],
+            ackBotManualWhitelistText: "",
         };
     },
     mounted() {
@@ -231,6 +251,7 @@ export default {
         async load() {
 
             await Connection.loadSelfInfo();
+            await Connection.loadContacts();
             await this.loadDeviceInfo();
 
             this.name = GlobalState.selfInfo.name;
@@ -253,6 +274,7 @@ export default {
             this.ackBotEnabled = GlobalState.ackBot.enabled;
             this.ackBotTrigger = GlobalState.ackBot.trigger;
             this.ackBotResponse = GlobalState.ackBot.response;
+            this.syncAckBotWhitelistFields();
 
         },
         async loadDeviceInfo() {
@@ -334,6 +356,23 @@ export default {
                 GlobalState.ackBot.enabled = this.ackBotEnabled;
                 GlobalState.ackBot.trigger = this.ackBotTrigger;
                 GlobalState.ackBot.response = this.ackBotResponse;
+
+                const manualEntries = this.ackBotManualWhitelistText
+                    .split(/[\n,]/)
+                    .map((name) => name.trim())
+                    .filter((name) => name.length > 0);
+                const whitelist = [...this.ackBotWhitelistSelections, ...manualEntries];
+                const normalizedWhitelist = [];
+                const seen = new Set();
+                for(const name of whitelist){
+                    const key = name.toLowerCase();
+                    if(seen.has(key)){
+                        continue;
+                    }
+                    seen.add(key);
+                    normalizedWhitelist.push(name);
+                }
+                GlobalState.ackBot.whitelist = normalizedWhitelist;
                 Connection.saveAckBotSettings();
 
                 // reload self info
@@ -381,10 +420,49 @@ export default {
         bytesToHex(uint8Array) {
             return Utils.bytesToHex(uint8Array);
         },
+        syncAckBotWhitelistFields() {
+            const whitelist = GlobalState.ackBot.whitelist || [];
+            const contactMap = new Map();
+            this.contactOptions.forEach((contact) => {
+                contactMap.set(contact.name.toLowerCase(), contact.name);
+            });
+
+            const selected = [];
+            const manual = [];
+            whitelist.forEach((name) => {
+                const key = name.toLowerCase();
+                if(contactMap.has(key)){
+                    selected.push(contactMap.get(key));
+                } else {
+                    manual.push(name);
+                }
+            });
+
+            this.ackBotWhitelistSelections = selected;
+            this.ackBotManualWhitelistText = manual.join("\n");
+        },
     },
     computed: {
         GlobalState() {
             return GlobalState;
+        },
+        contactOptions() {
+            const seen = new Set();
+            return GlobalState.contacts
+                .map((contact) => ({
+                    name: (contact.name || "").trim(),
+                    key: Utils.bytesToHex(contact.publicKey),
+                }))
+                .filter((contact) => contact.name.length > 0)
+                .filter((contact) => {
+                    const key = contact.name.toLowerCase();
+                    if(seen.has(key)){
+                        return false;
+                    }
+                    seen.add(key);
+                    return true;
+                })
+                .sort((a, b) => a.name.localeCompare(b.name));
         },
     },
 }

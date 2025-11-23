@@ -3,6 +3,8 @@ import {WebBleConnection, WebSerialConnection, Constants} from "@liamcottle/mesh
 import Database from "./Database.js";
 import Utils from "./Utils.js";
 import NotificationUtils from "./NotificationUtils.js";
+import {isSenderAllowed} from "./AckBotUtils.js";
+import WebSocketBridgeConnection from "./WebSocketBridgeConnection.js";
 
 class Connection {
 
@@ -53,6 +55,34 @@ class Connection {
 
             // show error message
             alert(`Failed to connect to serial device: ${e.message ?? e}`);
+
+            return false;
+
+        }
+    }
+
+    static async connectToRemoteRadio(remoteUrl) {
+        try {
+
+            const trimmedUrl = remoteUrl?.trim();
+            if(!trimmedUrl){
+                alert("Please provide the WebSocket URL of the remote radio bridge.");
+                return false;
+            }
+
+            if(!/^wss?:\/\//i.test(trimmedUrl)){
+                alert("Remote radio URL must start with ws:// or wss://");
+                return false;
+            }
+
+            await this.connect(await WebSocketBridgeConnection.open(trimmedUrl));
+            return true;
+
+        } catch(e) {
+
+            console.log(e);
+
+            alert(`Failed to connect to remote radio: ${e.message ?? e}`);
 
             return false;
 
@@ -382,10 +412,16 @@ class Connection {
 
                 // prevent replying to self or other bots
                 const myName = GlobalState.selfInfo ? GlobalState.selfInfo.name : "";
-                if(senderName !== myName && senderName !== "AckBot"){
+                const whitelist = Array.isArray(GlobalState.ackBot.whitelist) ? GlobalState.ackBot.whitelist : [];
+                const allowed = isSenderAllowed(senderName, whitelist);
+                if(whitelist.length > 0 && !allowed){
+                    console.log(`AckBot ignoring ${senderName} - sender not in whitelist`);
+                }
+
+                if(senderName !== myName && senderName !== "AckBot" && allowed){
 
                     console.log(`AckBot triggering for ${senderName}`);
-                    
+
                     let responseText = GlobalState.ackBot.response || "AckBot: @{sender} tyqre ackbot received";
                     responseText = responseText.replace("@{sender}", `@${senderName}`);
 
@@ -420,6 +456,7 @@ class Connection {
                 GlobalState.ackBot.enabled = parsed.enabled ?? false;
                 GlobalState.ackBot.trigger = parsed.trigger ?? "tyqre ackbot";
                 GlobalState.ackBot.response = parsed.response ?? "AckBot: @{sender} tyqre ackbot received";
+                GlobalState.ackBot.whitelist = Array.isArray(parsed.whitelist) ? parsed.whitelist : [];
             } catch(e) {
                 console.error("Failed to load AckBot settings", e);
             }
