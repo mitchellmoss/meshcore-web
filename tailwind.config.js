@@ -1,4 +1,5 @@
 import formsPlugin from '@tailwindcss/forms';
+import colors from 'tailwindcss/colors';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -8,7 +9,10 @@ export default {
     ],
     theme: {
         extend: {
-
+            colors: {
+                gray: colors.slate,
+                blue: colors.indigo,
+            }
         },
     },
     plugins: [

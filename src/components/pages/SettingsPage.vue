@@ -111,6 +111,32 @@
 
                     </div>
 
+                    <!-- AckBot settings -->
+                    <div class="bg-white divide-y">
+
+                        <div class="bg-white p-2 font-semibold">AckBot Settings</div>
+
+                        <div class="w-full p-2 flex items-center justify-between">
+                            <div class="block text-sm font-medium text-gray-900">Enable AckBot</div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" v-model="ackBotEnabled" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        <div class="w-full p-2">
+                            <div class="block mb-2 text-sm font-medium text-gray-900">Trigger Text</div>
+                            <input v-model="ackBotTrigger" type="text" placeholder="e.g: tyqre ackbot" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                        </div>
+
+                        <div class="w-full p-2">
+                            <div class="block mb-2 text-sm font-medium text-gray-900">Response Text</div>
+                            <input v-model="ackBotResponse" type="text" placeholder="e.g: AckBot: @{sender} tyqre ackbot received" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            <p class="mt-1 text-xs text-gray-500">Use @{sender} to mention the message sender.</p>
+                        </div>
+
+                    </div>
+
                     <!-- commands -->
                     <div class="flex flex-col divide-y bg-white">
 
@@ -193,6 +219,9 @@ export default {
             latitude: null,
             longitude: null,
             deviceInfo: null,
+            ackBotEnabled: false,
+            ackBotTrigger: "",
+            ackBotResponse: "",
         };
     },
     mounted() {
@@ -219,6 +248,11 @@ export default {
             // e.g: -38664646, 178023507 -> -38.664646, 178.023507
             this.latitude = GlobalState.selfInfo.advLat / 1000000;
             this.longitude = GlobalState.selfInfo.advLon / 1000000;
+
+            // load ackbot settings
+            this.ackBotEnabled = GlobalState.ackBot.enabled;
+            this.ackBotTrigger = GlobalState.ackBot.trigger;
+            this.ackBotResponse = GlobalState.ackBot.response;
 
         },
         async loadDeviceInfo() {
@@ -295,6 +329,12 @@ export default {
                 await Connection.setAdvertLatLong(latitude, longitude);
                 await Connection.setRadioParams(radioFreq, this.radioBw, this.radioSf, this.radioCr);
                 await Connection.setTxPower(this.txPower);
+
+                // save ackbot settings
+                GlobalState.ackBot.enabled = this.ackBotEnabled;
+                GlobalState.ackBot.trigger = this.ackBotTrigger;
+                GlobalState.ackBot.response = this.ackBotResponse;
+                Connection.saveAckBotSettings();
 
                 // reload self info
                 await Connection.loadSelfInfo();

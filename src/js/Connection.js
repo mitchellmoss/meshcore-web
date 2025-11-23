@@ -157,6 +157,7 @@ class Connection {
         });
 
         // initial setup without needing database
+        this.loadAckBotSettings();
         await this.loadSelfInfo();
         await this.syncDeviceTime();
 
@@ -360,6 +361,45 @@ class Connection {
 
         console.log("onChannelMessageReceived", message);
 
+        // AckBot Logic
+        try {
+            // parse message text to get sender name and content
+            const parts = message.text.split(":");
+            let senderName = "Unknown";
+            let content = message.text;
+
+            if(parts.length > 1){
+                senderName = parts.shift().trim();
+                content = parts.join(":").trim();
+            }
+
+            // check for trigger (case insensitive)
+            const lowerContent = content.toLowerCase();
+            const trigger = (GlobalState.ackBot.trigger || "tyqre ackbot").toLowerCase();
+
+            // check if enabled and triggered
+            if(GlobalState.ackBot.enabled && lowerContent.includes(trigger)){
+
+                // prevent replying to self or other bots
+                const myName = GlobalState.selfInfo ? GlobalState.selfInfo.name : "";
+                if(senderName !== myName && senderName !== "AckBot"){
+
+                    console.log(`AckBot triggering for ${senderName}`);
+                    
+                    let responseText = GlobalState.ackBot.response || "AckBot: @{sender} tyqre ackbot received";
+                    responseText = responseText.replace("@{sender}", `@${senderName}`);
+
+                    // send response (delayed slightly to feel natural and ensure processing order)
+                    setTimeout(async () => {
+                        await this.sendChannelMessage(message.channelIdx, responseText);
+                    }, 1000);
+
+                }
+            }
+        } catch(e) {
+            console.error("AckBot Error:", e);
+        }
+
         // save message to database
         await Database.ChannelMessage.insert({
             channel_idx: message.channelIdx,
@@ -370,6 +410,24 @@ class Connection {
             text: message.text,
         });
 
+    }
+
+    static loadAckBotSettings() {
+        const settings = localStorage.getItem("meshcore_ackbot_settings");
+        if(settings){
+            try {
+                const parsed = JSON.parse(settings);
+                GlobalState.ackBot.enabled = parsed.enabled ?? false;
+                GlobalState.ackBot.trigger = parsed.trigger ?? "tyqre ackbot";
+                GlobalState.ackBot.response = parsed.response ?? "AckBot: @{sender} tyqre ackbot received";
+            } catch(e) {
+                console.error("Failed to load AckBot settings", e);
+            }
+        }
+    }
+
+    static saveAckBotSettings() {
+        localStorage.setItem("meshcore_ackbot_settings", JSON.stringify(GlobalState.ackBot));
     }
 
 }

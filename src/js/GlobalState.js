@@ -9,6 +9,11 @@ const globalState = reactive({
     batteryPercentageInterval: null,
     contacts: [],
     channels: [],
+    ackBot: {
+        enabled: false,
+        trigger: "tyqre ackbot",
+        response: "AckBot: @{sender} tyqre ackbot received",
+    },
 });
 
 export default globalState;
