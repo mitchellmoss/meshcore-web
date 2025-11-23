@@ -405,6 +405,44 @@ class Connection {
             console.log("couldn't find contact, received message has been dropped");
             return;
         }
+        // AckBot Logic
+        try {
+            const senderName = contact.name || "Unknown";
+            const content = message.text;
+
+            // check for trigger (case insensitive)
+            const lowerContent = content.toLowerCase();
+            const trigger = (GlobalState.ackBot.trigger || "tyqre ackbot").toLowerCase();
+
+            // check if enabled and triggered
+            if(GlobalState.ackBot.enabled && lowerContent.includes(trigger)){
+
+                // prevent replying to self or other bots
+                const myName = GlobalState.selfInfo ? GlobalState.selfInfo.name : "";
+                const whitelist = Array.isArray(GlobalState.ackBot.whitelist) ? GlobalState.ackBot.whitelist : [];
+                const allowed = isSenderAllowed(senderName, whitelist);
+                
+                if(whitelist.length > 0 && !allowed){
+                    console.log(`AckBot ignoring ${senderName} - sender not in whitelist`);
+                }
+
+                if(senderName !== myName && senderName !== "AckBot" && allowed){
+
+                    console.log(`AckBot triggering for ${senderName}`);
+                    
+                    let responseText = GlobalState.ackBot.response || "AckBot: @{sender} tyqre ackbot received";
+                    responseText = responseText.replace("@{sender}", `@${senderName}`);
+
+                    // send response (delayed slightly to feel natural and ensure processing order)
+                    setTimeout(async () => {
+                        await this.sendMessage(contact.publicKey, responseText);
+                    }, 1000);
+
+                }
+            }
+        } catch(e) {
+            console.error("AckBot Error (DM):", e);
+        }
 
         // save message to database
         await Database.Message.insert({
@@ -464,7 +502,9 @@ class Connection {
 
                     // send response (delayed slightly to feel natural and ensure processing order)
                     setTimeout(async () => {
-                        await this.sendChannelMessage(message.channelIdx, responseText);
+                        // ensure channel index is a number
+                        const channelIdx = message.channelIdx !== undefined ? Number(message.channelIdx) : 0;
+                        await this.sendChannelMessage(channelIdx, responseText);
                     }, 1000);
 
                 }
