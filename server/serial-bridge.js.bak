@@ -3,7 +3,7 @@ import https from "https";
 import fs from "fs";
 import process from "process";
 import { WebSocketServer, WebSocket } from "ws";
-import { NodeJSSerialConnection, Constants } from "@liamcottle/meshcore.js";
+import { NodeJSSerialConnection } from "@liamcottle/meshcore.js";
 
 const SERIAL_PORT_PATH = process.env.MESHCORE_SERIAL_PORT || "/dev/ttyUSB0";
 const WS_PORT = Number(process.env.MESHCORE_BRIDGE_PORT || "8787");
@@ -57,60 +57,60 @@ async function connectSerialWithRetry() {
             });
 
             connection.on("tx", (frame) => {
-                console.log("[serial] tx", frame.length, "bytes");
+            connection.on("error", (err) => {
+                console.error("[serial] connection error:", err);
             });
-            
+                console.log("[serial] tx", frame.length, "bytes");
+            connection.on("error", (err) => {
+                console.error("[serial] connection error:", err);
+            });
+            });
             connection.on("error", (err) => {
                 console.error("[serial] connection error:", err);
             });
 
-            // Bot Logic: Listen for new messages
-            connection.on(Constants.PushCodes.MsgWaiting, async () => {
+            // Bot Logic: Listen for messages
+            connection.on("channelMessage", async (event) => {
+                 // console.log("[bot] channelMessage", event);
                  try {
-                     const waitingMessages = await connection.getWaitingMessages();
-                     for(const message of waitingMessages) {
-                         if(!message.channelMessage) continue;
+                     const message = event.text;
+                     const channelIdx = event.channelIdx;
+ 
+                     // AckBot Logic
+                     // parse message text to get sender name and content
+                     const parts = message.split(":");
+                     let senderName = "Unknown";
+                     let content = message;
+ 
+                     if(parts.length > 1){
+                         senderName = parts.shift().trim();
+                         content = parts.join(":").trim();
+                     }
+ 
+                     // check for trigger (case insensitive)
+                     const lowerContent = content.toLowerCase();
+                     const trigger = "tyqre ackbot";
+ 
+                     // check if triggered
+                     if(lowerContent.includes(trigger)){
                          
-                         const channelMsg = message.channelMessage;
-                         const messageText = channelMsg.text;
-                         const channelIdx = channelMsg.channelIdx;
- 
-                         // AckBot Logic
-                         // parse message text to get sender name and content
-                         const parts = messageText.split(":");
-                         let senderName = "Unknown";
-                         let content = messageText;
- 
-                         if(parts.length > 1){
-                             senderName = parts.shift().trim();
-                             content = parts.join(":").trim();
-                         }
- 
-                         // check for trigger (case insensitive)
-                         const lowerContent = content.toLowerCase();
-                         const trigger = "tyqre ackbot";
- 
-                         // check if triggered
-                         if(lowerContent.includes(trigger)){
+                         const myName = selfInfo?.name || "Unknown";
+                         
+                         // Avoid replying to self or other bots
+                         if(senderName !== myName && senderName !== "AckBot"){
+                             console.log(`[bot] Triggered by ${senderName}`);
+                             let responseText = "AckBot: @{sender} tyqre ackbot received";
+                             responseText = responseText.replace("@{sender}", `@${senderName}`);
                              
-                             const myName = selfInfo?.name || "Unknown";
-                             
-                             // Avoid replying to self or other bots
-                             if(senderName !== myName && senderName !== "AckBot"){
-                                 console.log(`[bot] Triggered by ${senderName}`);
-                                 let responseText = "AckBot: @{sender} tyqre ackbot received";
-                                 responseText = responseText.replace("@{sender}", `@${senderName}`);
-                                 
-                                 // Wait a bit (simulated delay)
-                                 setTimeout(async () => {
-                                     try {
-                                         await connection.sendChannelTextMessage(channelIdx, responseText);
-                                         console.log(`[bot] Replied: ${responseText}`);
-                                     } catch(e) {
-                                         console.error("[bot] Failed to send response:", e);
-                                     }
-                                 }, 1000);
-                             }
+                             // Wait a bit (simulated delay)
+                             setTimeout(async () => {
+                                 try {
+                                     await connection.sendChannelTextMessage(channelIdx, responseText);
+                                     console.log(`[bot] Replied: ${responseText}`);
+                                 } catch(e) {
+                                     console.error("[bot] Failed to send response:", e);
+                                 }
+                             }, 1000);
                          }
                      }
  

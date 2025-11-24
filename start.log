@@ -1,0 +1,96 @@
+nohup: ignoring input
+[start] Web UI:   http://0.0.0.0:5173 (externally accessible if firewall allows)
+[start] Bridge:    ws://0.0.0.0:8787 -> serial /dev/ttyUSB0
+[start] Starting WebSocket serial bridge as root (sudo) using /home/lm/.nvm/versions/node/v22.18.0/bin/node...
+[start] Bridge PID (root): 344656
+[serial] opening /dev/ttyUSB0
+[bridge] Found SSL certificates. Starting secure WSS server.
+[serial] awaiting device handshake...
+[bridge] listening on ws://0.0.0.0:8787
+[bridge] forwarding serial device at /dev/ttyUSB0
+[serial] tx 2 bytes
+[serial] rx 80 bytes
+[serial] connected to /dev/ttyUSB0
+[start] Starting Vite dev server as normal user...
+[start] Dev PID:          344754
+[start] Press Ctrl-C to stop both dev server and bridge.
+
+> meshcore-web@0.0.1 dev
+> vite --host 0.0.0.0 --port 5173
+
+
+  VITE v6.4.1  ready in 238 ms
+
+  ➜  Local:   https://localhost:5173/
+  ➜  Network: https://192.168.86.211:5173/
+  ➜  Network: https://192.168.86.212:5173/
+  ➜  Network: https://192.168.86.213:5173/
+  ➜  Network: https://172.17.0.1:5173/
+  ➜  Network: https://172.18.0.1:5173/
+  ➜  Network: https://100.121.19.118:5173/
+[ws] client connected from 192.168.86.209
+[ws] rx from client 2 bytes
+[serial] tx 2 bytes
+[serial] rx 80 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 12 bytes
+[serial] tx 12 bytes
+[serial] rx 66 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 5 bytes
+[serial] tx 5 bytes
+[serial] rx 1 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 5 bytes
+[bridge] broadcasting frame to 1 clients
+[serial] rx 148 bytes
+[bridge] broadcasting frame to 1 clients
+[serial] rx 148 bytes
+[bridge] broadcasting frame to 1 clients
+[serial] rx 5 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 27 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 28 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 27 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 1 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 11 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 43 bytes
+[serial] tx 43 bytes
+[ws] rx from client 43 bytes
+[serial] tx 43 bytes
+[serial] rx 1 bytes
+[bridge] broadcasting frame to 1 clients
+[serial] rx 1 bytes
+[bridge] broadcasting frame to 1 clients
+[serial] rx 73 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 11 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 11 bytes
+[bridge] broadcasting frame to 1 clients
+[ws] rx from client 1 bytes
+[serial] tx 1 bytes
+[serial] rx 11 bytes
+[bridge] broadcasting frame to 1 clients
+Shutting down serial bridge...

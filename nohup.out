@@ -1,0 +1,52 @@
+[start] Web UI:   http://0.0.0.0:5173 (externally accessible if firewall allows)
+[start] Bridge:    ws://0.0.0.0:8787 -> serial /dev/ttyUSB0
+[start] Starting WebSocket serial bridge as root (sudo) using /home/lm/.nvm/versions/node/v22.18.0/bin/node...
+[start] Bridge PID (root): 330257
+sudo: unable to read password: Input/output error
+sudo: a password is required
+[start] Web UI:   http://0.0.0.0:5173 (externally accessible if firewall allows)
+[start] Bridge:    ws://0.0.0.0:8787 -> serial /dev/ttyUSB0
+[start] Starting WebSocket serial bridge as root (sudo) using /home/lm/.nvm/versions/node/v22.18.0/bin/node...
+[start] Bridge PID (root): 330811
+[serial] opening /dev/ttyUSB0
+[bridge] Found SSL certificates. Starting secure WSS server.
+[serial] awaiting device handshake...
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:8787
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on WebSocketServer instance at:
+    at Server.emit (node:events:518:28)
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8787
+}
+
+Node.js v22.18.0
+[start] Starting Vite dev server as normal user...
+[start] Dev PID:          330830
+[start] Press Ctrl-C to stop both dev server and bridge.
+
+> meshcore-web@0.0.1 dev
+> vite --host 0.0.0.0 --port 5173
+
+Port 5173 is in use, trying another one...
+
+  VITE v6.4.1  ready in 223 ms
+
+  ➜  Local:   https://localhost:5174/
+  ➜  Network: https://192.168.86.211:5174/
+  ➜  Network: https://192.168.86.212:5174/
+  ➜  Network: https://192.168.86.213:5174/
+  ➜  Network: https://172.17.0.1:5174/
+  ➜  Network: https://172.18.0.1:5174/
+  ➜  Network: https://100.121.19.118:5174/
